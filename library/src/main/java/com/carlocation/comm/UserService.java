@@ -7,11 +7,11 @@ import com.carlocation.comm.messaging.AuthMessage;
 import com.carlocation.comm.messaging.BaseMessage;
 import com.carlocation.comm.messaging.GlidingPathMessage;
 import com.carlocation.comm.messaging.IMTxtMessage;
-import com.carlocation.comm.messaging.IMVoiceMessage;
 import com.carlocation.comm.messaging.Location;
 import com.carlocation.comm.messaging.LocationCell;
 import com.carlocation.comm.messaging.LocationMessage;
 import com.carlocation.comm.messaging.MessageResponseStatus;
+import com.carlocation.comm.messaging.Notification;
 import com.carlocation.comm.messaging.RankType;
 import com.carlocation.comm.messaging.ResponseMessage;
 import com.carlocation.comm.messaging.RestrictedAreaMessage;
@@ -67,13 +67,23 @@ public class UserService implements Serializable{
         AuthMessage authMsg = new AuthMessage(getTransactionId(),getTerminalId(),
                 username,pwd, AuthMessage.AuthMsgType.AUTH_LOGIN_MSG);
 
-
         // Invoke native service to send message
         Log.d(LOG_TAG,"logIn():Start invoke native service to send message login.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(authMsg,mRspListener);
+        sendMessage(authMsg, mRspListener);
+
+    }
+
+    private void sendMessage(BaseMessage msg, ResponseListener rspListener) {
+        if (mNativeService == null) {
+            Log.e(LOG_TAG,"sendMessage():It seems failed to bind service mNativeService = "+mNativeService);
+            mRspListener.onResponse(new Notification(msg, Notification.NotificationType.RESPONSE, Notification.Result.SERVICE_DOWN));
         }else {
-            Log.e(LOG_TAG,"logIn():It seems failed to bind service mNativeService = "+mNativeService);
+            if (rspListener != null){
+                mNativeService.sendMessage(msg,rspListener);
+            }
+            else {
+                mNativeService.sendMessage(msg);
+            }
         }
 
     }
@@ -95,11 +105,7 @@ public class UserService implements Serializable{
 
         // Invoke native service to send message
         Log.d(LOG_TAG, "logOut():Start invoke native service to send message logout.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(authMsg,mRspListener);
-        }else {
-            Log.e(LOG_TAG,"logOut():It seems failed to bind service mNativeService = "+mNativeService);
-        }
+        sendMessage(authMsg, mRspListener);
 
     }
 
@@ -112,11 +118,7 @@ public class UserService implements Serializable{
 
         // Invoke native service to send message
         Log.d(LOG_TAG, "sendMyStatus():Start invoke native service to send status message.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(statMsg);
-        }else {
-            Log.e(LOG_TAG,"sendMyStatus():It seems failed to bind service mNativeService = "+mNativeService);
-        }
+        sendMessage(statMsg, null);
 
     }
 
@@ -128,12 +130,7 @@ public class UserService implements Serializable{
 
         // Invoke native service to send message
         Log.d(LOG_TAG, "sendMyLocation(): Start invoke native service to send LocationMessage.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(myLocationMsg);
-        }else {
-            Log.e(LOG_TAG,"sendMyLocation():It seems failed to bind service mNativeService = "+mNativeService);
-        }
-
+        sendMessage(myLocationMsg, null);
     }
 
     /**
@@ -147,12 +144,7 @@ public class UserService implements Serializable{
 
         // Invoke native service to send message
         Log.d(LOG_TAG, "sendImTxtMsg(): Start invoke native service to send IM txt msg.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(txtMessage);
-        }else {
-            Log.e(LOG_TAG,"sendImTxtMsg():It seems failed to bind service mNativeService = "+mNativeService);
-        }
-
+        sendMessage(txtMessage, null);
     }
 
     /**
@@ -160,7 +152,7 @@ public class UserService implements Serializable{
      * @param toTerminal    Terminal ID of destination
      * @param voiceData     Context of voice data
      */
-    public void sendImVoiceMsg(List<String> toTerminal, byte[] voiceData){
+    /*public void sendImVoiceMsg(List<String> toTerminal, byte[] voiceData){
         IMVoiceMessage voiceMessage = new IMVoiceMessage(getTransactionId(),
                 getTerminalId(),toTerminal,voiceData);
 
@@ -172,7 +164,7 @@ public class UserService implements Serializable{
             Log.e(LOG_TAG,"sendImVoiceMsg():It seems failed to bind service mNativeService = "+mNativeService);
         }
 
-    }
+    }*/
 
     /**
      * send to schedule server to indicate starting to execute given <>taskID</>
@@ -182,16 +174,9 @@ public class UserService implements Serializable{
         TaskAssignmentMessage startWorkMsg  = new TaskAssignmentMessage(getTransactionId(),
                 getTerminalId(), ActionType.ACTION_START,taskId,null);
 
-        //TODO add to sent queue and removed until success response received.
-
         // Invoke native service to send message
         Log.d(LOG_TAG, "startWork(): Start invoke native service to send start work msg.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(startWorkMsg,mRspListener);
-        }else {
-            Log.e(LOG_TAG,"startWork():It seems failed to bind service mNativeService = "+mNativeService);
-        }
-
+        sendMessage(startWorkMsg, mRspListener);
 
     }
 
@@ -202,15 +187,9 @@ public class UserService implements Serializable{
     public void finishWorkMsg(short taskId){
         TaskAssignmentMessage finishWorkMsg = new TaskAssignmentMessage(getTransactionId(),getTerminalId(),ActionType.ACTION_FINISH,taskId,null);
 
-        //TODO add to sent queue and removed until success response received.
-
         // Invoke native service to send message
         Log.d(LOG_TAG, "finishWork(): Start invoke native service to send finish work msg.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(finishWorkMsg,mRspListener);
-        }else {
-            Log.e(LOG_TAG,"finishWork():It seems failed to bind service mNativeService = "+mNativeService);
-        }
+        sendMessage(finishWorkMsg, mRspListener);
 
     }
 
@@ -222,15 +201,9 @@ public class UserService implements Serializable{
         TaskAssignmentMessage queryWorkMsg = new TaskAssignmentMessage(getTransactionId(),
                 getTerminalId(),ActionType.ACTION_QUERY,taskId,null);
 
-        //TODO add to sent queue and removed until success response received.
-
         // Invoke native service to send message
         Log.d(LOG_TAG, "queryWorkMsg(): Start invoke native service to query work by id msg.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(queryWorkMsg,mRspListener);
-        }else {
-            Log.e(LOG_TAG,"queryWorkMsg():It seems failed to bind service mNativeService = "+mNativeService);
-        }
+        sendMessage(queryWorkMsg, mRspListener);
 
     }
 
@@ -242,15 +215,9 @@ public class UserService implements Serializable{
         GlidingPathMessage queryPathMsg = new GlidingPathMessage(getTransactionId(),
                 ActionType.ACTION_QUERY,getTerminalId(),null,glidePathId,null);
 
-        //TODO add to sent queue and removed until success response received.
-
         // Invoke native service to send message
         Log.d(LOG_TAG, "queryPathMsg(): Start invoke native service to query glide path by id msg.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(queryPathMsg, mRspListener);
-        }else {
-            Log.e(LOG_TAG,"queryPathMsg():It seems failed to bind service mNativeService = "+mNativeService);
-        }
+        sendMessage(queryPathMsg, mRspListener);
     }
 
     /**
@@ -263,11 +230,7 @@ public class UserService implements Serializable{
 
         // Invoke native service to send message
         Log.d(LOG_TAG, "queryWarnMsg(): Start invoke native service to query warn area by id msg.");
-        if(mNativeService!= null){
-            mNativeService.sendMessage(queryWarnMsg,mRspListener);
-        }else {
-            Log.e(LOG_TAG,"queryWarnMsg():It seems failed to bind service mNativeService = "+mNativeService);
-        }
+        sendMessage(queryWarnMsg, mRspListener);
     }
 
     void responActionAssign(BaseMessage message, MessageResponseStatus status){
