@@ -22,11 +22,6 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="18" />
-
-
-
-    
-
     <application
         android:name=".CarLocationApplication"
         android:allowBackup="true"
