@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.carlocation.comm.NotificationListener;
 import com.carlocation.comm.ResponseListener;
@@ -123,7 +124,10 @@ public class LoginActivity extends Activity {
 				Intent i = new Intent(LoginActivity.this, MainActivity.class);
 				startActivity(i);
 				finish();
-			}
+			}else {
+                Toast.makeText(LoginActivity.this,"Authentication failed! Pls try again!",Toast.LENGTH_SHORT).show();
+            }
+
 		}
 	}
 

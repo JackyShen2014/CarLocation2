@@ -1,6 +1,10 @@
 package com.carlocation.demo;
 
 import android.app.ListActivity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
@@ -16,6 +20,7 @@ import android.widget.Toast;
 
 import com.carlocation.comm.ConnectionState;
 import com.carlocation.comm.IMessageService;
+import com.carlocation.comm.MessageService;
 import com.carlocation.comm.NativeServInterface;
 import com.carlocation.comm.NotificationListener;
 import com.carlocation.comm.ResponseListener;
@@ -69,6 +74,7 @@ public class MainActivity extends ListActivity implements NativeServInterface {
 
         getUserService();
         regNotifictListenner();
+        regConnStateRecver();
 
         mList = getListView();
         mItems = new ArrayList<>();
@@ -114,15 +120,20 @@ public class MainActivity extends ListActivity implements NativeServInterface {
                         break;
                     case 7:
                         //Send ImTxtMsg
-                        List<String> toId = new ArrayList<>();
-                        String toTerminalId;
-                        if (mUserService.getTerminalId().equals("t1")) {
-                            toTerminalId = "t2";
-                        }else {
-                            toTerminalId = "t1";
+                        if (mConnState == ConnectionState.CONNECTED){
+                            List<String> toId = new ArrayList<>();
+                            String toTerminalId;
+                            if (mUserService.getTerminalId().equals("t1")) {
+                                toTerminalId = "t2";
+                            }else {
+                                toTerminalId = "t1";
+                            }
+                            toId.add(toTerminalId);
+                            mUserService.sendImTxtMsg(toId, RankType.NORMAL,"Hello!I'm "+mUserService.getTerminalId());
+                        } else {
+                            Toast.makeText(MainActivity.this,"No connection for rabbitmq",Toast.LENGTH_SHORT).show();
                         }
-                        toId.add(toTerminalId);
-                        mUserService.sendImTxtMsg(toId, RankType.NORMAL,"Hello!I'm "+mUserService.getTerminalId());
+
                         break;
                     case 8:
                         //sendMyLocation
@@ -164,6 +175,38 @@ public class MainActivity extends ListActivity implements NativeServInterface {
 
     }
 
+    private void regConnStateRecver() {
+        //Get current rabbitMq connection state
+        mConnState = mNativeService.getConnState();
+
+        //"mConnStateReceiver" used to recv connection state notification
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(MessageService.BROADCAST_ACTION_STATE_CHANGED);
+        filter.addCategory(MessageService.BROADCAST_CATEGORY);
+        registerReceiver(mConnStateReceiver, filter);
+    }
+
+    private BroadcastReceiver mConnStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action  = intent.getAction();
+            //Use 'if' for the purpose of further extending filter more actions.
+            if (MessageService.BROADCAST_ACTION_STATE_CHANGED.equals(action)) {
+                ConnectionState newState = (ConnectionState)intent.getSerializableExtra(MessageService.EXTRA_CONNECTION_STATE);
+                if (mConnState!= newState) {
+                    Log.d(LOG_TAG,"mConnStateReceiver(): Connection state changed [old:"
+                            +mConnState+" new:"+newState+"]");
+                    mConnState = newState;
+                }
+                if (!ConnectionState.CONNECTED.equals(newState)){
+                    String popMsg = getResources().getText(R.string.notify_disconnected).toString();
+                    Toast.makeText(MainActivity.this,popMsg+"[old:"+mConnState+" new:"+newState+"]",Toast.LENGTH_SHORT).show();
+                }
+            }
+
+        }
+    };
+
 
     /**
      * Called after {@link #onRestoreInstanceState}, {@link #onRestart}, or
@@ -201,6 +244,8 @@ public class MainActivity extends ListActivity implements NativeServInterface {
     protected void onDestroy() {
         super.onDestroy();
         mResumed = false;
+        unregisterReceiver(mConnStateReceiver);
+        (((CarLocationApplication) getApplicationContext()).getService()).unRegisterNotificationListener(this.mListener);
     }
 
     @Override
