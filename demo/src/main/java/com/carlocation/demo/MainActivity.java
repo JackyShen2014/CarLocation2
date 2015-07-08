@@ -79,6 +79,8 @@ public class MainActivity extends ListActivity implements NativeServInterface {
         mList = getListView();
         mItems = new ArrayList<>();
 
+        
+
         //Reflect all announced public methods in UserService
         try{
             Method[] methods = UserService.class.getDeclaredMethods();
